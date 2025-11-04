@@ -1,23 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Voice Chat</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Free WebRTC Voice Chat — Debug Build</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <main>
+    <h1>Free WebRTC Voice Chat — Debug Build</h1>
+    <p>Share the URL + hash (#roomid) with a friend. Click <strong>Connect</strong> on both pages.</p>
 
-    <h1>Free WebRTC Voice Chat</h1>
-    <p>Share the URL with someone to join the same room.</p>
+    <div id="controls">
+      <button id="startBtn">Connect</button>
+      <button id="muteBtn" disabled>Mute</button>
+      <button id="hangupBtn" disabled>Hang Up</button>
+      <span id="status" class="status">idle</span>
+    </div>
 
-    <button id="startBtn">Connect</button>
+    <section id="logHint">
+      <p><small>Console is extremely verbose (console.js). Open DevTools → Console and watch everything.</small></p>
+    </section>
 
-    <!-- Load debugger first -->
-    <script src="console.js"></script>
+    <audio id="remoteAudio" autoplay></audio>
+  </main>
 
-    <!-- Load main script last -->
-    <script src="script.js"></script>
+  <!-- Load the console logger first (versioned to bust cache) -->
+  <script src="console.js?v=20251104_01"></script>
 
+  <!-- Load main script last (versioned to bust cache) -->
+  <script src="script.js?v=20251104_01"></script>
 </body>
 </html>
