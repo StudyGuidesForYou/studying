@@ -2,22 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cloudflare WebRTC Demo</title>
+  <title>Robust Cloudflare WebRTC Demo</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <video id="localVideo" autoplay muted playsinline></video>
-  <video id="remoteVideo" autoplay playsinline></video>
-
+  <h1>Cloudflare WebRTC Demo</h1>
+  <div id="videoContainer">
+    <video id="localVideo" autoplay muted playsinline></video>
+    <div id="remoteVideos"></div>
+  </div>
+  
   <div id="controls">
     <button id="muteBtn">Mute/Unmute</button>
     <button id="cameraBtn">Toggle Camera</button>
   </div>
 
+  <div id="log"></div>
+
   <!-- Debugging script -->
   <script src="console.js"></script>
-
-  <!-- Main script -->
+  
+  <!-- Main WebRTC logic -->
   <script src="script.js"></script>
 </body>
 </html>
