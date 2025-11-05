@@ -1,34 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Free WebRTC Voice Chat — Debug Build</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Cloudflare WebRTC Demo</title>
+  <style>
+    body {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: #222;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    video {
+      width: 45%;
+      margin: 2%;
+      background: black;
+      border-radius: 8px;
+    }
+    #controls {
+      width: 100%;
+      text-align: center;
+      margin-top: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 0 5px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <main>
-    <h1>Free WebRTC Voice Chat — Debug Build</h1>
-    <p>Share the URL + hash (#roomid) with a friend. Click <strong>Connect</strong> on both pages.</p>
+  <video id="localVideo" autoplay muted playsinline></video>
+  <video id="remoteVideo" autoplay playsinline></video>
 
-    <div id="controls">
-      <button id="startBtn">Connect</button>
-      <button id="muteBtn" disabled>Mute</button>
-      <button id="hangupBtn" disabled>Hang Up</button>
-      <span id="status" class="status">idle</span>
-    </div>
+  <div id="controls">
+    <button id="muteBtn">Mute/Unmute</button>
+    <button id="cameraBtn">Toggle Camera</button>
+  </div>
 
-    <section id="logHint">
-      <p><small>Console is extremely verbose (console.js). Open DevTools → Console and watch everything.</small></p>
-    </section>
-
-    <audio id="remoteAudio" autoplay></audio>
-  </main>
-
-  <!-- Load the console logger first (versioned to bust cache) -->
-  <script src="console.js?v=20251104_01"></script>
-
-  <!-- Load main script last (versioned to bust cache) -->
-  <script src="script.js?v=20251104_01"></script>
+  <script src="script.js"></script>
 </body>
 </html>
