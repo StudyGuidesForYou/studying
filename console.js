@@ -1,32 +1,17 @@
-// console.js - Debug everything
-
 function log(...args) {
   console.log("%c[DEBUG]", "color: cyan; font-weight: bold;", ...args);
 }
 
-// Log DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-  log("DOM fully loaded");
-});
+document.addEventListener("DOMContentLoaded", () => log("DOM fully loaded"));
+window.addEventListener("error", (e) => log("Window Error:", e.message, e.filename, e.lineno, e.colno, e.error));
+window.addEventListener("unhandledrejection", (e) => log("Unhandled Promise Rejection:", e.reason));
 
-// Capture window errors
-window.addEventListener("error", (e) => {
-  log("Window Error:", e.message, e.filename, e.lineno, e.colno, e.error);
-});
-
-// Capture unhandled promise rejections
-window.addEventListener("unhandledrejection", (e) => {
-  log("Unhandled Promise Rejection:", e.reason);
-});
-
-// Capture WebSocket events
 function wrapWebSocket(ws) {
   const originalSend = ws.send;
   ws.send = function(data) {
     log("WS Send:", data);
     return originalSend.apply(ws, arguments);
   };
-
   ws.addEventListener("open", () => log("WS Open"));
   ws.addEventListener("message", (e) => log("WS Message:", e.data));
   ws.addEventListener("close", (e) => log("WS Closed:", e));
@@ -34,25 +19,20 @@ function wrapWebSocket(ws) {
   return ws;
 }
 
-// Wrap RTCPeerConnection to log everything
 function wrapPeerConnection(pc) {
   const events = [
     "icecandidate", "iceconnectionstatechange", "track", "connectionstatechange",
     "signalingstatechange", "icegatheringstatechange", "negotiationneeded"
   ];
 
-  events.forEach(event => {
-    pc.addEventListener(event, (e) => log("PC Event:", event, e));
-  });
+  events.forEach(event => pc.addEventListener(event, (e) => log("PC Event:", event, e)));
 
-  // Wrap addIceCandidate
   const originalAddIceCandidate = pc.addIceCandidate.bind(pc);
   pc.addIceCandidate = async function(candidate) {
     log("PC addIceCandidate called:", candidate);
     return originalAddIceCandidate(candidate);
   };
 
-  // Wrap createOffer and createAnswer
   const originalCreateOffer = pc.createOffer.bind(pc);
   pc.createOffer = async function(options) {
     const offer = await originalCreateOffer(options);
@@ -70,5 +50,4 @@ function wrapPeerConnection(pc) {
   return pc;
 }
 
-// Expose helpers globally
 window.Debug = { log, wrapWebSocket, wrapPeerConnection };
