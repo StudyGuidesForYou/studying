@@ -1,73 +1,114 @@
-// Replace with your Cloudflare Worker URL
+// script.js - full multi-participant WebRTC logic
+
+// Replace with your Worker URL
 const SIGNALING_URL = "https://calling.very-cool-email2001.workers.dev?room=default";
 
-let localStream, pc, ws;
 const localVideo = document.getElementById("localVideo");
-const remoteVideo = document.getElementById("remoteVideo");
+const remoteVideos = document.getElementById("remoteVideos");
 const muteBtn = document.getElementById("muteBtn");
 const cameraBtn = document.getElementById("cameraBtn");
 
+let localStream;
+let pcs = {}; // mapping remoteId -> RTCPeerConnection
+let ws;
 let audioEnabled = true;
 let videoEnabled = true;
 
+// Helper to create a video element for a remote peer
+function createRemoteVideo(peerId) {
+  let video = document.createElement("video");
+  video.id = "remote_" + peerId;
+  video.autoplay = true;
+  video.playsInline = true;
+  remoteVideos.appendChild(video);
+  return video;
+}
+
+// Initialize media and signaling
 async function init() {
-  // 1️⃣ Get user media
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localVideo.srcObject = localStream;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
 
-  // 2️⃣ Connect to signaling server with full logging
-  ws = Debug.wrapWebSocket(new WebSocket(SIGNALING_URL));
+    ws = Debug.wrapWebSocket(new WebSocket(SIGNALING_URL));
 
-  ws.addEventListener("message", async (msg) => {
-    const data = JSON.parse(msg.data);
+    ws.onmessage = async (msg) => {
+      const data = JSON.parse(msg.data);
+      const senderId = data.sender || "unknown";
 
-    if (data.sdp) {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      if (data.sdp.type === "offer") {
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        ws.send(JSON.stringify({ sdp: pc.localDescription }));
+      if(data.type === "offer") {
+        if(!pcs[senderId]){
+          pcs[senderId] = createPeerConnection(senderId);
+        }
+        await pcs[senderId].setRemoteDescription(new RTCSessionDescription(data.sdp));
+        const answer = await pcs[senderId].createAnswer();
+        await pcs[senderId].setLocalDescription(answer);
+        ws.send(JSON.stringify({ type: "answer", sdp: pcs[senderId].localDescription, receiver: senderId }));
+      } 
+      else if(data.type === "answer") {
+        if(pcs[senderId]){
+          await pcs[senderId].setRemoteDescription(new RTCSessionDescription(data.sdp));
+        }
+      } 
+      else if(data.type === "candidate") {
+        if(pcs[senderId]){
+          try { await pcs[senderId].addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(err){ Debug.log("ICE error", err); }
+        }
       }
-    } else if (data.candidate) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (err) {
-        console.error("Error adding ICE candidate:", err);
-      }
-    }
-  });
+    };
 
-  // 3️⃣ PeerConnection with logging
-  pc = Debug.wrapPeerConnection(new RTCPeerConnection());
+    ws.onopen = () => {
+      Debug.log("Connected to signaling server");
+    };
+
+    ws.onclose = () => Debug.log("Signaling server disconnected");
+
+    muteBtn.addEventListener("click", () => {
+      audioEnabled = !audioEnabled;
+      localStream.getAudioTracks().forEach(track => track.enabled = audioEnabled);
+    });
+
+    cameraBtn.addEventListener("click", () => {
+      videoEnabled = !videoEnabled;
+      localStream.getVideoTracks().forEach(track => track.enabled = videoEnabled);
+    });
+
+    // Create initial offer to everyone else
+    // In Cloudflare worker setup, new clients receive the offer automatically
+
+  } catch(err) {
+    Debug.log("Initialization error:", err);
+  }
+}
+
+// Create peer connection for a remote peer
+function createPeerConnection(peerId){
+  const pc = Debug.wrapPeerConnection(new RTCPeerConnection());
+
   localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
   pc.ontrack = (event) => {
-    remoteVideo.srcObject = event.streams[0];
+    let video = document.getElementById("remote_" + peerId) || createRemoteVideo(peerId);
+    video.srcObject = event.streams[0];
   };
 
   pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      ws.send(JSON.stringify({ candidate: event.candidate }));
+    if(event.candidate){
+      ws.send(JSON.stringify({ type: "candidate", candidate: event.candidate, receiver: peerId }));
     }
   };
 
-  pc.onnegotiationneeded = async () => {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({ sdp: pc.localDescription }));
+  pc.oniceconnectionstatechange = () => {
+    Debug.log(`ICE state (${peerId}):`, pc.iceConnectionState);
+    if(pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed"){
+      // Clean up disconnected peer
+      const video = document.getElementById("remote_" + peerId);
+      if(video) video.remove();
+      delete pcs[peerId];
+    }
   };
 
-  // 4️⃣ Controls
-  muteBtn.addEventListener("click", () => {
-    audioEnabled = !audioEnabled;
-    localStream.getAudioTracks().forEach(track => track.enabled = audioEnabled);
-  });
-
-  cameraBtn.addEventListener("click", () => {
-    videoEnabled = !videoEnabled;
-    localStream.getVideoTracks().forEach(track => track.enabled = videoEnabled);
-  });
+  return pc;
 }
 
-// Start
 init();
