@@ -1,4 +1,4 @@
-// Replace with your deployed Cloudflare Worker URL
+// Replace with your Cloudflare Worker URL
 const SIGNALING_URL = "https://calling.very-cool-email2001.workers.dev?room=default";
 
 let localStream, pc, ws;
@@ -15,8 +15,8 @@ async function init() {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   localVideo.srcObject = localStream;
 
-  // 2️⃣ Connect to signaling server
-  ws = new WebSocket(SIGNALING_URL);
+  // 2️⃣ Connect to signaling server with full logging
+  ws = Debug.wrapWebSocket(new WebSocket(SIGNALING_URL));
 
   ws.addEventListener("message", async (msg) => {
     const data = JSON.parse(msg.data);
@@ -37,8 +37,8 @@ async function init() {
     }
   });
 
-  // 3️⃣ PeerConnection
-  pc = new RTCPeerConnection();
+  // 3️⃣ PeerConnection with logging
+  pc = Debug.wrapPeerConnection(new RTCPeerConnection());
   localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
   pc.ontrack = (event) => {
